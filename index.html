@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FutureRTC: Real-Time Robot Execution with Anticipatory-Conditioned Action Chunking</title>
+<meta name="description" content="FutureRTC is a plug-and-play adapter that predicts the execution-time observation and state for asynchronous VLA control, leaving the pretrained policy untouched.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#129302;</text></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Noto+Sans:wght@400;500;700&family=Castoro:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1.9.4/css/academicons.min.css">
+
+<style>
+  /* ---- nerfies-style base ---- */
+  body{
+    font-family:"Noto Sans","Google Sans",system-ui,sans-serif;
+    color:#363636;
+  }
+  .footer, .hero.is-light, .section{background-color:#fff;}
+  .publication-title{
+    font-family:"Castoro",Georgia,serif;
+    font-weight:700;
+    line-height:1.15;
+  }
+  .publication-title em{font-style:normal; color:#c2181a;}
+  .publication-subtitle{
+    font-family:"Castoro",Georgia,serif;
+    font-style:italic;
+    color:#4a4a4a;
+  }
+  .publication-authors{
+    font-family:"Google Sans","Noto Sans",sans-serif;
+    font-size:1.05rem;
+  }
+  .publication-authors sup{font-size:.66em; color:#c2181a; font-weight:700; padding-left:1px;}
+  .publication-affil{font-size:.93rem; color:#7a7a7a; line-height:1.7;}
+  .publication-affil sup{font-size:.74em; color:#c2181a; font-weight:700; padding-right:1px;}
+  .publication-affil .org{display:block;}
+  .publication-affil .corr{display:block; margin-top:.5rem;}
+  .publication-affil a{color:inherit; border-bottom:1px solid #dbdbdb;}
+  .publication-affil a:hover{color:#c2181a;}
+  .publication-links{margin-top:1.4rem;}
+  .publication-links .button{margin:.25rem;}
+  .link-block .button{
+    border-radius:100px;
+    background-color:#363636;
+    border-color:transparent;
+    color:#fff;
+    font-weight:500;
+  }
+  .link-block .button:hover{background-color:#4a4a4a; color:#fff;}
+  .link-block .button.is-soon{
+    background-color:#fff; color:#9a9a9a; border:1px solid #dbdbdb;
+    cursor:not-allowed;
+  }
+  .link-block .button.is-soon:hover{background-color:#fff; color:#9a9a9a;}
+  .venue-tag{
+    display:inline-block;
+    font-size:.78rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    color:#c2181a; background:rgba(194,24,26,.07); border:1px solid rgba(194,24,26,.28);
+    padding:5px 14px; border-radius:100px; margin-bottom:1.4rem;
+  }
+  .hero-body{padding-top:3.6rem; padding-bottom:2.2rem;}
+
+  .teaser img{border-radius:4px;}
+  .teaser .caption, .fig-caption{
+    font-size:.88rem; line-height:1.6; color:#7a7a7a;
+    margin-top:.85rem; padding-top:.8rem; border-top:1px solid #ededed;
+    text-align:left;
+  }
+  .fig-caption b{color:#4a4a4a;}
+  .fig-box{
+    border:1px solid #ededed; border-radius:6px; padding:1rem;
+    box-shadow:0 1px 2px rgba(10,10,10,.04), 0 8px 22px rgba(10,10,10,.05);
+  }
+  .fig-box img{margin:0 auto;}
+
+  .section-title{
+    font-family:"Castoro",Georgia,serif; font-weight:700;
+  }
+  .eyebrow{
+    font-size:.75rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:#c2181a; margin-bottom:.5rem;
+  }
+  .content-narrow{max-width:52rem; margin:0 auto;}
+
+  /* ---- tldr cards ---- */
+  .tldr-card{
+    height:100%;
+    background:#fff; border:1px solid #ededed; border-top:3px solid #c2181a;
+    border-radius:6px; padding:1.5rem;
+    box-shadow:0 1px 2px rgba(10,10,10,.04), 0 8px 22px rgba(10,10,10,.05);
+  }
+  .tldr-card .big{
+    font-family:"Castoro",Georgia,serif; font-weight:700;
+    font-size:1.85rem; line-height:1.15; color:#c2181a;
+    display:block; margin-bottom:.45rem;
+  }
+  .tldr-card .big .unit{font-size:.6em; color:#4a4a4a;}
+  .tldr-card .lbl{font-weight:700; display:block; margin-bottom:.35rem;}
+  .tldr-card p{font-size:.9rem; color:#7a7a7a; line-height:1.55;}
+
+  /* ---- callout ---- */
+  .callout{
+    background:rgba(194,24,26,.05);
+    border:1px solid rgba(194,24,26,.22);
+    border-left:3px solid #c2181a;
+    border-radius:5px; padding:1.2rem 1.4rem;
+  }
+  .callout .k{font-weight:700; color:#363636;}
+
+  /* ---- method steps ---- */
+  .step-box{
+    background:#fff; border:1px solid #ededed; border-radius:6px;
+    padding:1.4rem; margin-bottom:1rem;
+    box-shadow:0 1px 2px rgba(10,10,10,.04), 0 8px 22px rgba(10,10,10,.05);
+  }
+  .step-box .num{
+    display:inline-grid; place-items:center;
+    width:28px; height:28px; border-radius:50%;
+    background:#c2181a; color:#fff; font-size:.82rem; font-weight:700;
+    margin-right:.7rem; vertical-align:middle;
+  }
+  .step-box h4{
+    display:inline; font-weight:700; font-size:1.03rem; color:#363636;
+    vertical-align:middle;
+  }
+  .step-box p{margin-top:.75rem; font-size:.95rem; color:#4a4a4a;}
+
+  /* ---- results table ---- */
+  .tbl-scroll{overflow-x:auto; border:1px solid #ededed; border-radius:6px;}
+  table.res{
+    border-collapse:collapse; width:100%; min-width:820px;
+    font-size:.84rem; font-variant-numeric:tabular-nums; background:#fff;
+  }
+  table.res th, table.res td{padding:8px 10px; text-align:center; white-space:nowrap;}
+  table.res thead th{font-weight:700; color:#363636; border-bottom:1px solid #d5d5d5;}
+  table.res thead .sub{font-size:.775rem; font-weight:500; color:#8a8a8a;}
+  table.res .grp{border-left:1px solid #ededed;}
+  table.res tbody th{text-align:left; font-weight:500; color:#4a4a4a; padding-left:14px;}
+  table.res tbody td{color:#4a4a4a;}
+  table.res .cat{
+    font-size:.71rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    color:#8a8a8a; text-align:left; padding:12px 14px 4px; background:#fafafa;
+  }
+  table.res tr.ours{background:rgba(194,24,26,.05);}
+  table.res tr.ours th{color:#c2181a; font-weight:700;}
+  table.res tr.ours td{color:#363636; font-weight:700;}
+  table.res tr.ours th, table.res tr.ours td{
+    border-top:1px solid rgba(194,24,26,.22); border-bottom:1px solid rgba(194,24,26,.22);
+  }
+  .tbl-note{font-size:.82rem; color:#8a8a8a; margin-top:.7rem;}
+
+  /* ---- video grid ---- */
+  .vid-bar{display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; margin-bottom:1rem;}
+  .vid-bar .spacer{margin-left:auto;}
+  .ctl-group{
+    display:inline-flex; align-items:center; gap:2px;
+    background:#fff; border:1px solid #dbdbdb; border-radius:100px; padding:3px;
+  }
+  .ctl-group .lbl{
+    font-size:.75rem; color:#8a8a8a; font-weight:600;
+    padding:0 8px 0 10px; letter-spacing:.04em;
+  }
+  .chip{
+    font:inherit; font-size:.8rem; font-weight:600; font-variant-numeric:tabular-nums;
+    padding:4px 12px; border-radius:100px; border:none;
+    background:transparent; color:#4a4a4a; cursor:pointer;
+  }
+  .chip[aria-pressed=true]{background:#c2181a; color:#fff;}
+  .btn-sm{
+    font:inherit; font-size:.8rem; font-weight:600;
+    padding:7px 15px; border-radius:100px;
+    border:1px solid #dbdbdb; background:#fff; color:#4a4a4a; cursor:pointer;
+  }
+  .btn-sm:hover{border-color:rgba(194,24,26,.4); color:#c2181a;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:var(--lw) repeat(4,minmax(0,1fr));
+    gap:clamp(5px,.75vw,10px);
+    --lw:clamp(4.1rem,7vw,8.4rem);
+    align-items:center;
+  }
+  .col-head{
+    text-align:center; font-size:clamp(.74rem,1.05vw,.92rem); font-weight:700;
+    padding-bottom:4px; color:#363636;
+  }
+  .col-head.ours{color:#c2181a;}
+  .col-head small{display:block; font-size:.78em; font-weight:400; color:#8a8a8a;}
+  .row-head{
+    font-size:clamp(.72rem,1vw,.89rem); font-weight:700; line-height:1.3;
+    padding-right:8px; text-align:right; color:#363636;
+  }
+  .row-head .play{
+    display:block; margin-top:5px; font-size:.79em; font-weight:600;
+    color:#8a8a8a; background:none; border:none; padding:0;
+    cursor:pointer; font-family:inherit; text-align:right; width:100%;
+  }
+  .row-head .play:hover{color:#c2181a;}
+  .cell{
+    position:relative; aspect-ratio:854/480; overflow:hidden;
+    background:#0a0a0c; border:1px solid #ededed; border-radius:3px; cursor:pointer;
+  }
+  .cell.is-ours{border-color:rgba(194,24,26,.35); box-shadow:0 0 0 1.5px rgba(194,24,26,.28);}
+  .cell video{width:100%; height:100%; object-fit:cover;}
+  .cell .ph{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    transition:opacity .2s ease;
+  }
+  .cell.playing .ph{opacity:0; pointer-events:none;}
+  .cell .ovl{
+    position:absolute; inset:0; display:grid; place-items:center;
+    background:rgba(8,9,12,.26); transition:opacity .2s ease;
+  }
+  .cell.playing .ovl{opacity:0; pointer-events:none;}
+  .cell .ovl span{
+    width:clamp(26px,3.4vw,40px); height:clamp(26px,3.4vw,40px); border-radius:50%;
+    background:rgba(255,255,255,.92); color:#111;
+    display:grid; place-items:center; font-size:clamp(.68rem,.95vw,.86rem);
+    padding-left:2px; box-shadow:0 2px 10px rgba(0,0,0,.3);
+  }
+
+  /* ---- bibtex ---- */
+  #bibtex-sec pre{
+    background:#fafafa; border:1px solid #ededed; border-radius:6px;
+    padding:1.2rem; font-size:.83rem; line-height:1.65; color:#4a4a4a;
+    overflow-x:auto;
+  }
+  .bib-wrap{position:relative;}
+  .copy-btn{
+    position:absolute; top:10px; right:10px;
+    font:inherit; font-size:.75rem; font-weight:600;
+    padding:5px 12px; border-radius:100px;
+    border:1px solid #dbdbdb; background:#fff; color:#8a8a8a; cursor:pointer;
+  }
+  .copy-btn:hover{color:#c2181a; border-color:rgba(194,24,26,.4);}
+
+  @media (max-width:640px){
+    .grid{--lw:clamp(3.1rem,13vw,4.6rem);}
+  }
+</style>
+</head>
+<body>
+
+<nav class="navbar is-white" role="navigation" aria-label="main navigation" style="border-bottom:1px solid #ededed;">
+  <div class="navbar-brand">
+    <a class="navbar-item" href="#" style="font-family:'Castoro',Georgia,serif; font-weight:700; font-size:1.05rem;">FutureRTC</a>
+    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navMenu">
+      <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+    </a>
+  </div>
+  <div class="navbar-menu" id="navMenu">
+    <div class="navbar-end">
+      <a class="navbar-item" href="#tldr">Overview</a>
+      <a class="navbar-item" href="#problem">Problem</a>
+      <a class="navbar-item" href="#method">Method</a>
+      <a class="navbar-item" href="#results">Results</a>
+      <a class="navbar-item" href="#realworld">Real World</a>
+      <a class="navbar-item" href="#videos">Videos</a>
+      <a class="navbar-item" href="#bibtex-sec">BibTeX</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <span class="venue-tag">Under Review</span>
+          <h1 class="title is-2 publication-title">
+            FutureRTC: Real-Time Robot Execution with<br>
+            Anticipatory-Conditioned Action Chunking
+          </h1>
+
+          <div class="publication-authors" style="margin-top:1.6rem;">
+            <span>Hai&nbsp;Jiang<sup>1</sup>,</span>
+            <span>Yixian&nbsp;Zou<sup>2</sup>,</span>
+            <span>Binbin&nbsp;Liang<sup>1</sup>,</span>
+            <span>Boqian&nbsp;Liu<sup>3</sup>,</span>
+            <span>Fanman&nbsp;Meng<sup>2</sup>,</span>
+            <span>Shuaicheng&nbsp;Liu<sup>2,&#9993;</sup></span>
+          </div>
+          <div class="publication-affil" style="margin-top:.7rem;">
+            <span class="org"><sup>1</sup>School of Aeronautics and Astronautics, Sichuan University</span>
+            <span class="org"><sup>2</sup>University of Electronic Science and Technology of China</span>
+            <span class="org"><sup>3</sup>University of Alberta</span>
+            <span class="corr">&#9993;&nbsp;Corresponding author:
+              <a href="mailto:liushuaicheng@uestc.edu.cn">liushuaicheng@uestc.edu.cn</a></span>
+          </div>
+          <div class="publication-links">
+            <!-- To turn a "soon" placeholder into a real link, swap the outer
+                 <span class="button is-normal is-soon"> for an anchor and drop
+                 the "(soon)" text, i.e.
+
+                   <a href="https://arxiv.org/abs/2601.01234" class="button is-normal">
+                     <span class="icon"><i class="ai ai-arxiv"></i></span>
+                     <span>arXiv</span>
+                   </a>
+
+                 The icons come from Academicons (ai ai-arxiv) and FontAwesome
+                 (fab fa-github), both already loaded in <head>. -->
+            <span class="link-block">
+              <span class="button is-normal is-soon">
+                <span class="icon"><i class="ai ai-arxiv"></i></span>
+                <span>arXiv (soon)</span>
+              </span>
+            </span>
+            <span class="link-block">
+              <span class="button is-normal is-soon">
+                <span class="icon"><i class="fab fa-github"></i></span>
+                <span>Code (soon)</span>
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="hero teaser">
+  <div class="container is-max-widescreen">
+    <div class="fig-box">
+      <img src="static/images/teaser.jpg" alt="Filmstrips of RTC, VLASH and FutureRTC executing the real-world Hang Cups task, above velocity and acceleration plots showing FutureRTC's smoother kinematics." width="2466" height="1139">
+      <p class="caption">
+        Inference-time method <b>RTC</b>, training-time method <b>VLASH</b>, and our <b>FutureRTC</b> on the
+        real-world <i>Hang Cups</i> task with <b>&pi;<sub>0.5</sub></b> as the VLA backbone.
+        <b>Top:</b> task completion progress under asynchronous execution &mdash; FutureRTC finishes in
+        <b>270 steps / 26.5&nbsp;s</b> versus 293&nbsp;/&nbsp;30.7&nbsp;s (VLASH) and
+        311&nbsp;/&nbsp;31.5&nbsp;s (RTC).
+        <b>Bottom:</b> average robot kinematics during execution, where the baselines show pronounced
+        acceleration spikes at chunk boundaries.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="tldr">
+  <div class="container is-max-widescreen">
+    <div class="content-narrow has-text-centered" style="margin-bottom:2.4rem;">
+      <p class="eyebrow">TL;DR</p>
+      <h2 class="title is-3 section-title">A plug-and-play adapter that predicts the observation and state the policy should conditioned on</h2>
+      <p>
+        Under asynchronous execution, an action chunk is computed from an observation that is already
+        stale by the time it runs. FutureRTC forecasts the <i>execution-time</i> visual latent and
+        proprioceptive state from their stale counterparts, so the frozen policy behaves as if there
+        were no delay at all.
+      </p>
+    </div>
+
+    <div class="columns is-variable is-4">
+      <div class="column">
+        <div class="tldr-card">
+          <span class="big">Pretrained VLA<br>Untouched</span>
+          <span class="lbl">No retraining, no policy edits</span>
+          <p>The adapter attaches in front of a frozen backbone. It transfers across
+             &pi;<sub>0.5</sub> and SmolVLA-450M without touching either.</p>
+        </div>
+      </div>
+      <div class="column">
+        <div class="tldr-card">
+          <span class="big">68.3 &rarr; 88.5<span class="unit">&nbsp;%</span></span>
+          <span class="lbl">Success rate at delay <i>d</i>&nbsp;=&nbsp;20</span>
+          <p>LIBERO with &pi;<sub>0.5</sub>: <b>+20.2</b> points over naive asynchronous execution and
+             <b>+14.0</b> over the strongest training-time baseline.</p>
+        </div>
+      </div>
+      <div class="column">
+        <div class="tldr-card">
+          <span class="big">+5.19<span class="unit">&nbsp;M</span> &middot; +3.04<span class="unit">&nbsp;ms</span></span>
+          <span class="lbl">Added parameters &amp; latency</span>
+          <p>On SmolVLA-450M (+6.45&nbsp;M / +3.64&nbsp;ms on &pi;<sub>0.5</sub>) &mdash; a small
+             fraction of one policy forward pass.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="problem" style="background:#fafafa;">
+  <div class="container is-max-widescreen">
+    <div class="content-narrow has-text-centered" style="margin-bottom:2.4rem;">
+      <p class="eyebrow">The Problem</p>
+      <h2 class="title is-3 section-title">Prediction&ndash;execution misalignment</h2>
+      <p>
+        Action chunking amortizes VLA inference cost, but the chunk boundary is where real-time
+        deployment breaks down. Synchronous execution keeps the conditioning fresh and stalls the
+        robot; naive asynchronous execution keeps the robot moving and lets the conditioning go stale.
+      </p>
+    </div>
+
+    <div class="fig-box" style="background:#fff;">
+      <img src="static/images/execution_compare.png" alt="Diagram comparing synchronous, naive asynchronous and FutureRTC execution timelines." width="1941" height="339">
+      <p class="fig-caption">
+        Execution paradigms with prediction horizon <i>H</i>&nbsp;=&nbsp;5, execution horizon
+        <i>K</i>&nbsp;=&nbsp;3 and inference delay <i>d</i>&nbsp;=&nbsp;2.
+        <b>(a) Synchronous:</b> the robot stalls during inference &mdash; accurate, but stop-and-go.
+        <b>(b) Naive asynchronous:</b> chunk <b>A</b><sub>1</sub> is conditioned on the stale pair
+        (<i>o</i><sub>1</sub>,&nbsp;<i>s</i><sub>1</sub>) yet executed at step&nbsp;3, so its first
+        <i>d</i> actions must be discarded.
+        <b>(c) FutureRTC:</b> the adapter &phi;(&middot;) forecasts the execution-time context
+        (<i>ẑ</i><sub>3</sub>,&nbsp;<i>ŝ</i><sub>3</sub>) from the stale latent and the committed
+        actions, so the chunk is already aligned and runs from its first action.
+      </p>
+    </div>
+
+    <div class="content-narrow" style="margin-top:2rem;">
+      <div class="callout">
+        <p>
+          <span class="k">Asynchronous execution is not inherently costly.</span>
+          When we feed the policy the <i>true</i> execution-time observation and state as an oracle,
+          the LIBERO success rate stays <b>flat across every delay</b> we test &mdash; 96.6&nbsp;% at
+          <i>d</i>&nbsp;=&nbsp;5 through <i>d</i>&nbsp;=&nbsp;20 on &pi;<sub>0.5</sub>. All of the
+          degradation comes from conditioning on stale inputs, not from overlapping inference with
+          execution. That upper bound is what FutureRTC sets out to recover.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="method">
+  <div class="container is-max-widescreen">
+    <div class="content-narrow has-text-centered" style="margin-bottom:2.4rem;">
+      <p class="eyebrow">Method</p>
+      <h2 class="title is-3 section-title">Correct the state, predict the observation, keep the policy frozen</h2>
+      <p>
+        Prior work either post-processes the action sequence or retrains the policy. FutureRTC instead
+        reconstructs the missing <i>input</i>: a state correction module fixes the rolled-forward
+        proprioceptive state, and an observation prediction module forecasts the visual latent the
+        policy would have seen at execution time.
+      </p>
+    </div>
+
+    <div class="fig-box" style="margin-bottom:2rem;">
+      <img src="static/images/pipeline.png" alt="Architecture of the FutureRTC adapter, showing the state correction module and the observation prediction module." width="1211" height="798">
+      <p class="fig-caption">
+        The adapter: a <b>State Correction Module</b> (a) and an <b>Observation Prediction Module</b> (b)
+        produce the execution-time state and visual latent from stale information.
+      </p>
+    </div>
+
+    <div class="content-narrow">
+      <div class="step-box">
+        <span class="num">1</span>
+        <h4>State Correction Module &mdash; fix the dead-reckoned state</h4>
+        <p>
+          The execution-time state can be estimated by rolling the stale state forward through the
+          committed actions, but forward integration accumulates bias, because commanded motion and
+          actual motion differ. An MLP conditioned on the rolled-forward state and the normalized delay
+          <i>d</i>/<i>d</i><sub>max</sub> predicts a compensatory residual, with orientation updated by
+          relative-rotation composition.
+        </p>
+      </div>
+
+      <div class="step-box">
+        <span class="num">2</span>
+        <h4>Observation Prediction Module &mdash; transport, then synthesize</h4>
+        <p>
+          Rather than generating pixels, the module works in the VLA's own visual latent space, so its
+          output is directly consumable by the policy and its cost stays small. Because the dominant
+          visual change comes from the robot's own displacement, the committed actions are mapped into an
+          explicit physical feature space &mdash; instantaneous command, cumulative displacement,
+          increment, accumulated path length, temporal progress &mdash; and passed through temporal
+          self-attention to form a motion prior.
+        </p>
+        <p>
+          That prior is projected into a 2D flow field and a transport gate &alpha;, which warps
+          the stale feature by differentiable bilinear grid sampling. A gated residual branch then
+          supplies what warping fundamentally cannot: contact deformation and newly disoccluded content,
+          injected through a synthesis gate &beta;. The result is fed straight into the policy,
+          bypassing its vision encoder.
+        </p>
+      </div>
+
+      <div class="step-box">
+        <span class="num">3</span>
+        <h4>Policy Consistency Loss &mdash; align to what the policy expects</h4>
+        <p>
+          Matching the latent is not the same as matching the behavior it induces. A consistency loss
+          asks the frozen policy to produce the same chunk from the predicted pair as from the true
+          execution-time pair, using a single-step flow approximation to avoid multi-step flow matching
+          during training. Delays are sampled uniformly at each step, so one adapter covers the whole
+          delay range without per-delay retraining.
+        </p>
+      </div>
+    </div>
+
+    <div class="fig-box" style="margin-top:2rem;">
+      <img src="static/images/visualize.jpg" alt="Heatmaps of the transport gate and synthesis gate overlaid on camera views during execution." width="1223" height="482">
+      <p class="fig-caption">
+        What the gates learn. <b>Top:</b> the transport gate &alpha; activates on the moving arm and
+        gripper, propagating existing features along the committed motion. <b>Bottom:</b> the synthesis
+        gate &beta; highlights motion boundaries and newly revealed regions, exactly where warping cannot
+        explain the change.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="results" style="background:#fafafa;">
+  <div class="container is-max-widescreen">
+    <div class="content-narrow has-text-centered" style="margin-bottom:2.4rem;">
+      <p class="eyebrow">Simulated Results</p>
+      <h2 class="title is-3 section-title">Delay robustness on LIBERO and Kinetix</h2>
+      <p>
+        Across both backbones and every delay we test, FutureRTC reaches the highest success rate while
+        finishing in the fewest execution steps. Where the baselines degrade steeply as delay grows,
+        FutureRTC loses only <b>5.7</b> points on &pi;<sub>0.5</sub> and <b>6.4</b> on SmolVLA from
+        <i>d</i>&nbsp;=&nbsp;5 to <i>d</i>&nbsp;=&nbsp;20.
+      </p>
+    </div>
+
+    <div class="tbl-scroll">
+      <table class="res">
+        <thead>
+          <tr>
+            <th rowspan="3" style="text-align:left;padding-left:14px;">Method</th>
+            <th colspan="4">&pi;<sub>0.5</sub></th>
+            <th colspan="4" class="grp">SmolVLA-450M</th>
+          </tr>
+          <tr>
+            <th colspan="4" class="sub">Success Rate (%) &uarr; / Execution Steps &darr;</th>
+            <th colspan="4" class="sub grp">Success Rate (%) &uarr; / Execution Steps &darr;</th>
+          </tr>
+          <tr>
+            <th class="sub"><i>d</i>=5</th><th class="sub"><i>d</i>=10</th><th class="sub"><i>d</i>=15</th><th class="sub"><i>d</i>=20</th>
+            <th class="sub grp"><i>d</i>=5</th><th class="sub"><i>d</i>=10</th><th class="sub"><i>d</i>=15</th><th class="sub"><i>d</i>=20</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="cat" colspan="9">Inference-time</td></tr>
+          <tr>
+            <th>Naive Async.</th>
+            <td>89.5 / 169.0</td><td>82.7 / 183.0</td><td>76.3 / 196.6</td><td>68.3 / 210.9</td>
+            <td class="grp">70.3 / 206.4</td><td>64.5 / 218.2</td><td>61.3 / 224.2</td><td>56.2 / 232.8</td>
+          </tr>
+          <tr>
+            <th>TE</th>
+            <td>87.8 / 173.0</td><td>84.3 / 180.1</td><td>80.6 / 185.8</td><td>74.8 / 197.0</td>
+            <td class="grp">68.4 / 208.8</td><td>66.7 / 212.9</td><td>62.6 / 220.0</td><td>59.7 / 224.2</td>
+          </tr>
+          <tr>
+            <th>BID</th>
+            <td>90.3 / 168.2</td><td>84.0 / 180.5</td><td>76.1 / 197.3</td><td>71.3 / 205.8</td>
+            <td class="grp">70.0 / 207.6</td><td>65.0 / 216.4</td><td>61.7 / 223.0</td><td>57.1 / 229.4</td>
+          </tr>
+          <tr>
+            <th>RTC</th>
+            <td>89.9 / 168.4</td><td>83.2 / 181.6</td><td>77.5 / 194.2</td><td>73.7 / 200.5</td>
+            <td class="grp">69.7 / 208.1</td><td>64.9 / 217.0</td><td>62.6 / 220.9</td><td>58.7 / 226.3</td>
+          </tr>
+
+          <tr><td class="cat" colspan="9">Training-time</td></tr>
+          <tr>
+            <th>T-RTC</th>
+            <td>89.4 / 168.5</td><td>84.0 / 177.7</td><td>77.9 / 193.1</td><td>74.0 / 200.1</td>
+            <td class="grp">69.9 / 208.7</td><td>65.6 / 215.8</td><td>61.7 / 222.0</td><td>59.4 / 226.6</td>
+          </tr>
+          <tr>
+            <th>VLASH</th>
+            <td>88.0 / 171.9</td><td>83.4 / 178.9</td><td>79.5 / 187.4</td><td>74.5 / 197.4</td>
+            <td class="grp">69.3 / 208.5</td><td>65.8 / 217.6</td><td>64.7 / 215.6</td><td>61.9 / 220.9</td>
+          </tr>
+          <tr>
+            <th>REMAC</th>
+            <td>90.8 / 166.6</td><td>85.4 / 177.6</td><td>78.5 / 192.6</td><td>73.9 / 199.6</td>
+            <td class="grp">70.9 / 206.2</td><td>66.5 / 213.5</td><td>62.2 / 220.9</td><td>59.7 / 224.9</td>
+          </tr>
+          <tr class="ours">
+            <th>FutureRTC (Ours)</th>
+            <td>94.2 / 162.4</td><td>92.4 / 166.9</td><td>91.0 / 170.1</td><td>88.5 / 175.1</td>
+            <td class="grp">75.8 / 198.7</td><td>73.3 / 202.7</td><td>71.6 / 206.4</td><td>69.4 / 209.4</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tbl-note">
+      LIBERO, averaged over the Spatial, Object, Goal and Long suites. Inference-time methods and ours
+      build on the frozen LeRobot-released fine-tuned weights; training-time baselines are reproduced
+      per their publications, except VLASH which provides an official LIBERO implementation.
+    </p>
+
+    <div class="fig-box" style="margin-top:2rem; background:#fff;">
+      <img src="static/images/kinetix_results.png" alt="Success rate and execution steps versus inference delay on the Kinetix benchmark for nine methods." width="2400" height="1080">
+      <p class="fig-caption">
+        Kinetix &mdash; 12 highly dynamic, stochastic environments, averaged over all tasks, with delay
+        <i>d</i>&nbsp;&isin;&nbsp;[0,&nbsp;4]. FutureRTC drops only <b>3.0&nbsp;%</b> in success rate from
+        <i>d</i>&nbsp;=&nbsp;0 to <i>d</i>&nbsp;=&nbsp;4 and needs the fewest execution steps for
+        <i>d</i>&nbsp;&ge;&nbsp;2, while the baselines take <i>more</i> steps under large delay because of
+        reactive hesitation. At <i>d</i>&nbsp;&isin;&nbsp;{0,&nbsp;1} a few training-time methods edge
+        ahead &mdash; they fine-tune or retrain on the benchmark, whereas our policy stays frozen.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="realworld">
+  <div class="container is-max-widescreen">
+    <div class="content-narrow has-text-centered" style="margin-bottom:2.4rem;">
+      <p class="eyebrow">Real World</p>
+      <h2 class="title is-3 section-title">Bimanual manipulation under real network latency</h2>
+      <p>
+        A dual-arm AgileX Cobot Magic running &pi;<sub>0.5</sub> at 30&nbsp;Hz. Serving the policy
+        remotely gives an end-to-end latency of about <b>170&nbsp;ms</b> (<i>d</i>&nbsp;&asymp;&nbsp;5);
+        injecting a further 150&nbsp;ms emulates constrained deployment at <b>320&nbsp;ms</b>
+        (<i>d</i>&nbsp;&asymp;&nbsp;10). Three tasks, 20 randomized trials each.
+      </p>
+    </div>
+
+    <div class="fig-box">
+      <img src="static/images/realworld_results.png" alt="Bar charts of success rate, execution steps and execution time for four methods on three real-world bimanual tasks at two latencies." width="2385" height="1290">
+      <p class="fig-caption">
+        Real-world comparison on <i>Stack Plates</i>, <i>Fold Towel</i> and <i>Hang Cups</i>.
+        FutureRTC holds the highest success rate on every task at both latencies &mdash; and the margin
+        widens as latency grows, e.g. <i>Fold Towel</i> at 320&nbsp;ms reaches <b>80&nbsp;%</b> versus
+        35&nbsp;% for naive asynchronous execution. It also finishes fastest throughout, at
+        <b>1.27&ndash;1.53&times;</b> the speed of naive asynchronous execution.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="videos" style="background:#fafafa;">
+  <div class="container is-max-widescreen">
+    <div class="content-narrow has-text-centered" style="margin-bottom:2rem;">
+      <p class="eyebrow">Videos</p>
+      <h2 class="title is-3 section-title">Side-by-side real-world execution</h2>
+      <p>
+        Every clip is five consecutive evaluation episodes concatenated, recorded under asynchronous
+        inference. Click any cell to play it, or use <i>play row</i> to start all four methods on a task
+        together. FutureRTC moves more decisively with fewer hesitations; the baselines show jerky
+        transitions and stall at chunk boundaries.
+      </p>
+    </div>
+
+    <div class="vid-bar">
+      <button class="btn-sm" id="playAll" type="button">&#9654;&nbsp; Play all</button>
+      <button class="btn-sm" id="pauseAll" type="button">&#10073;&#10073;&nbsp; Pause all</button>
+      <div class="spacer"></div>
+      <div class="ctl-group" role="group" aria-label="Playback speed">
+        <span class="lbl">Speed</span>
+        <button class="chip" type="button" data-rate="1" aria-pressed="true">1&times;</button>
+        <button class="chip" type="button" data-rate="2" aria-pressed="false">2&times;</button>
+        <button class="chip" type="button" data-rate="5" aria-pressed="false">5&times;</button>
+        <button class="chip" type="button" data-rate="10" aria-pressed="false">10&times;</button>
+      </div>
+    </div>
+
+    <div class="grid" id="vgrid">
+      <div class="corner"></div>
+      <div class="col-head">Naive Async.<small>inference-time</small></div>
+      <div class="col-head">RTC<small>inference-time</small></div>
+      <div class="col-head">VLASH<small>training-time</small></div>
+      <div class="col-head ours">FutureRTC<small>ours</small></div>
+      <!-- rows injected by script -->
+    </div>
+  </div>
+</section>
+
+<section class="section" id="bibtex-sec">
+  <div class="container is-max-desktop">
+    <div class="has-text-centered" style="margin-bottom:1.6rem;">
+      <p class="eyebrow">Citation</p>
+      <h2 class="title is-3 section-title">BibTeX</h2>
+    </div>
+    <div class="bib-wrap">
+      <button class="copy-btn" id="copyBib" type="button">Copy</button>
+<pre id="bibtex">@article{jiang2026futurertc,
+  title  = {FutureRTC: Real-Time Robot Execution with
+            Anticipatory-Conditioned Action Chunking},
+  author = {Jiang, Hai and Zou, Yixian and Liang, Binbin and
+            Liu, Boqian and Meng, Fanman and Liu, Shuaicheng},
+  year   = {2026}
+}</pre>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8 has-text-centered content">
+        <p style="font-family:'Castoro',Georgia,serif; font-size:1.1rem; font-weight:700; color:#363636;">FutureRTC</p>
+        <p style="font-size:.88rem; color:#7a7a7a;">
+          Anticipatory-conditioned action chunking for real-time robot execution.<br>
+          Under review &middot; code will be released.
+        </p>
+        <p style="font-size:.8rem; color:#9a9a9a;">
+          Page layout adapted from the
+          <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a> project page template,
+          licensed under
+          <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- bulma navbar burger ---------- */
+  var burger = document.querySelector(".navbar-burger");
+  if (burger) {
+    burger.addEventListener("click", function(){
+      var target = document.getElementById(burger.dataset.target);
+      burger.classList.toggle("is-active");
+      if (target) target.classList.toggle("is-active");
+    });
+  }
+
+  /* ---------- video grid ---------- */
+  var TASKS = [
+    { dir: "Stack_Plates", label: "Stack Plates" },
+    { dir: "Fold_Towel",   label: "Fold Towel"   },
+    { dir: "Hang_Cups",    label: "Hang Cups"    }
+  ];
+  var METHODS = [
+    { file: "Naive", name: "Naive Async." },
+    { file: "RTC",   name: "RTC"          },
+    { file: "VLASH", name: "VLASH"        },
+    { file: "Ours",  name: "FutureRTC"    }
+  ];
+
+  var grid = document.getElementById("vgrid");
+  var rate = 1;
+
+  TASKS.forEach(function(task){
+    var head = document.createElement("div");
+    head.className = "row-head";
+    head.innerHTML = task.label +
+      '<button class="play" type="button">&#9654; play row</button>';
+    grid.appendChild(head);
+
+    var cells = [];
+    METHODS.forEach(function(m){
+      var cell = document.createElement("div");
+      cell.className = "cell" + (m.file === "Ours" ? " is-ours" : "");
+      cell.setAttribute("role", "button");
+      cell.setAttribute("tabindex", "0");
+      cell.setAttribute("aria-label", task.label + " — " + m.name);
+
+      var base = "static/videos/" + task.dir + "/" + m.file;
+      var v = document.createElement("video");
+      v.src = base + ".mp4";
+      v.preload = "none";
+      v.loop = true;
+      v.muted = true;
+      v.playsInline = true;
+      v.setAttribute("playsinline", "");
+      v.setAttribute("webkit-playsinline", "");
+
+      var ph = document.createElement("img");
+      ph.className = "ph";
+      ph.src = base + ".jpg";
+      ph.alt = "";
+      ph.decoding = "async";
+
+      var ovl = document.createElement("div");
+      ovl.className = "ovl";
+      ovl.innerHTML = "<span>&#9654;</span>";
+
+      cell.appendChild(v);
+      cell.appendChild(ph);
+      cell.appendChild(ovl);
+      grid.appendChild(cell);
+      cells.push(cell);
+
+      function toggle(){
+        if (v.paused) { start(v, cell); } else { v.pause(); cell.classList.remove("playing"); }
+      }
+      cell.addEventListener("click", toggle);
+      cell.addEventListener("keydown", function(ev){
+        if (ev.key === " " || ev.key === "Enter") { ev.preventDefault(); toggle(); }
+      });
+      v.addEventListener("playing", function(){ cell.classList.add("playing"); });
+      v.addEventListener("pause",   function(){ cell.classList.remove("playing"); });
+    });
+
+    head.querySelector(".play").addEventListener("click", function(ev){
+      ev.stopPropagation();
+      cells.forEach(function(c){
+        var v = c.querySelector("video");
+        v.currentTime = 0;
+        start(v, c);
+      });
+    });
+  });
+
+  function start(v, cell){
+    v.playbackRate = rate;
+    var p = v.play();
+    if (p && p.catch) p.catch(function(){});
+    if (cell) cell.classList.add("playing");
+  }
+
+  function eachVideo(fn){
+    Array.prototype.forEach.call(grid.querySelectorAll("video"), fn);
+  }
+
+  document.getElementById("playAll").addEventListener("click", function(){
+    eachVideo(function(v){ v.currentTime = 0; start(v, v.parentElement); });
+  });
+  document.getElementById("pauseAll").addEventListener("click", function(){
+    eachVideo(function(v){ v.pause(); });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".chip[data-rate]"), function(chip){
+    chip.addEventListener("click", function(){
+      rate = parseFloat(chip.dataset.rate);
+      Array.prototype.forEach.call(document.querySelectorAll(".chip[data-rate]"), function(c){
+        c.setAttribute("aria-pressed", c === chip ? "true" : "false");
+      });
+      eachVideo(function(v){ v.playbackRate = rate; });
+    });
+  });
+
+  /* ---------- copy bibtex ---------- */
+  var copyBtn = document.getElementById("copyBib");
+  copyBtn.addEventListener("click", function(){
+    var text = document.getElementById("bibtex").textContent;
+    function done(){
+      copyBtn.textContent = "Copied";
+      setTimeout(function(){ copyBtn.textContent = "Copy"; }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); done(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  });
+})();
+</script>
+</body>
+</html>

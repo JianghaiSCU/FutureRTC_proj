@@ -212,7 +212,8 @@
     position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
     transition:opacity .2s ease;
   }
-  .cell.playing .ph{opacity:0; pointer-events:none;}
+  /* the poster hides for good once the clip has started; the overlay comes back on pause */
+  .cell.started .ph{opacity:0; pointer-events:none;}
   .cell .ovl{
     position:absolute; inset:0; display:grid; place-items:center;
     background:rgba(8,9,12,.26); transition:opacity .2s ease;
@@ -634,8 +635,8 @@
       <h2 class="title is-3 section-title">Side-by-side real-world execution</h2>
       <p>
         Every clip is five consecutive evaluation episodes concatenated, recorded under asynchronous
-        inference. Click any cell to play it, or use <i>play row</i> to start all four methods on a task
-        together. FutureRTC moves more decisively with fewer hesitations; the baselines show jerky
+        inference. Click any cell to play it, or use <i>replay row</i> to restart all four methods on a
+        task together. FutureRTC moves more decisively with fewer hesitations; the baselines show jerky
         transitions and stall at chunk boundaries.
       </p>
     </div>
@@ -643,6 +644,7 @@
     <div class="vid-bar">
       <button class="btn-sm" id="playAll" type="button">&#9654;&nbsp; Play all</button>
       <button class="btn-sm" id="pauseAll" type="button">&#10073;&#10073;&nbsp; Pause all</button>
+      <button class="btn-sm" id="replayAll" type="button">&#8635;&nbsp; Replay all</button>
       <div class="spacer"></div>
       <div class="ctl-group" role="group" aria-label="Playback speed">
         <span class="lbl">Speed</span>
@@ -737,7 +739,7 @@
     var head = document.createElement("div");
     head.className = "row-head";
     head.innerHTML = task.label +
-      '<button class="play" type="button">&#9654; play row</button>';
+      '<button class="play" type="button">&#8635; replay row</button>';
     grid.appendChild(head);
 
     var cells = [];
@@ -781,7 +783,10 @@
       cell.addEventListener("keydown", function(ev){
         if (ev.key === " " || ev.key === "Enter") { ev.preventDefault(); toggle(); }
       });
-      v.addEventListener("playing", function(){ cell.classList.add("playing"); });
+      v.addEventListener("playing", function(){
+        cell.classList.add("started");   // never removed — keeps the poster from covering the paused frame
+        cell.classList.add("playing");
+      });
       v.addEventListener("pause",   function(){ cell.classList.remove("playing"); });
     });
 
@@ -799,16 +804,23 @@
     v.playbackRate = rate;
     var p = v.play();
     if (p && p.catch) p.catch(function(){});
-    if (cell) cell.classList.add("playing");
+    if (cell) { cell.classList.add("started"); cell.classList.add("playing"); }
   }
 
   function eachVideo(fn){
     Array.prototype.forEach.call(grid.querySelectorAll("video"), fn);
   }
 
-  document.getElementById("playAll").addEventListener("click", function(){
-    eachVideo(function(v){ v.currentTime = 0; start(v, v.parentElement); });
-  });
+  // "Play all" resumes where each clip left off; "Replay all" restarts them together.
+  function playAll(fromStart){
+    eachVideo(function(v){
+      if (fromStart) v.currentTime = 0;
+      start(v, v.parentElement);
+    });
+  }
+
+  document.getElementById("playAll").addEventListener("click", function(){ playAll(false); });
+  document.getElementById("replayAll").addEventListener("click", function(){ playAll(true); });
   document.getElementById("pauseAll").addEventListener("click", function(){
     eachVideo(function(v){ v.pause(); });
   });
